@@ -1,0 +1,98 @@
+# Registre déclaratif des serveurs MCP du Service Statistique Public.
+#
+# Le fichier est validé au démarrage : nom d'espace de noms, URL, domaine, tags,
+# drapeau `enabled`, délais et limites de concurrence. Toute erreur (URL sans
+# schéma http(s), nom invalide, doublon) arrête la passerelle avec un message
+# explicite plutôt que de produire une erreur de proxy difficile à diagnostiquer.
+#
+# Chemin du fichier : --registry <chemin>, sinon $MCPGATEWAY_REGISTRY, sinon
+# registry.yaml / registry.yml / mcpgateway.yaml dans le répertoire courant.
+#
+# `name` sert aussi de préfixe à tous les composants exposés : le serveur
+# `mcpdiffusion` expose l'outil `mcpdiffusion_<outil>`.
+
+gateway:
+  name: SSP Gateway
+  # Laisser vide pour utiliser le texte généré automatiquement (recommandé : il
+  # liste les serveurs actifs, les domaines et les ressources du catalogue).
+  instructions: ""
+
+  tool_search:
+    # Masque le catalogue derrière des outils de recherche (search_tools / call_tool)
+    # pour ne pas saturer le contexte des agents avec tous les outils amont.
+    enabled: true
+    max_results: 5
+
+  catalog:
+    # Expose le catalogue en ressources MCP :
+    #   catalog://servers            — tous les serveurs (métadonnées, domaine, état)
+    #   catalog://domains            — serveurs regroupés par domaine
+    #   catalog://servers/{name}     — détail d'un serveur + métriques
+    #   catalog://servers/{name}/tools — inventaire des outils
+    #   catalog://guide              — guide d'utilisation (générique + celui ci-dessous)
+    enabled: true
+    include_tool_inventory: true
+    include_guide: true
+    # Guide de déploiement ajouté après le guide générique (mécanique de la
+    # passerelle) : nommage, découverte, démarches types propres à cette
+    # installation. Chemin relatif au fichier de registre.
+    guide_path: guide-ssp.md
+    inventory_stale_after_seconds: 300
+
+  health:
+    enabled: true
+    path: /health
+    probe_interval_seconds: 60
+    probe_timeout_seconds: 10
+    # Nombre d'échecs consécutifs avant de déclarer un serveur `down` (503).
+    failure_threshold: 2
+
+  metrics:
+    log_level: INFO
+    # Logs structurés JSON (une ligne = un événement) : latence, erreurs, appels.
+    json_logs: true
+    sample_window: 512
+
+  concurrency:
+    # Plafond global d'appels simultanés vers l'ensemble des serveurs amont.
+    global_limit: 16
+    # Attente maximale d'un créneau avant de renvoyer une erreur « passerelle occupée ».
+    acquire_timeout_seconds: 5
+
+servers:
+  - name: mcpdiffusion
+    url: https://mcpdiffusion.lab.sspcloud.fr/mcp
+    transport: http
+    domain: diffusion
+    description: Serveur pour exposer Melodi, Rmes et insee.fr
+    tags: [dataset, publications]
+    enabled: true
+    timeout: 30.0
+    max_concurrency: 4
+    cache_ttl: 300
+
+  - name: geodata
+    url: https://geollm.beta.ign.fr/geocontext/mcp
+    transport: http
+    domain: geographie
+    description: Données géographiques de l'IGN
+    tags: [carte]
+    enabled: true
+    timeout: 45.0
+    max_concurrency: 2
+    cache_ttl: 600
+
+# Pour ajouter un serveur, dupliquer ce bloc et l'adapter ; pour le retirer
+# temporairement de l'exposition sans perdre sa configuration, passer
+# `enabled: false` (il reste visible dans catalog://servers et /health?details=1).
+#
+#  - name: example
+#    url: https://example.gouv.fr/mcp
+#    transport: http
+#    domain: exemple
+#    description: Serveur d'exemple
+#    tags: [exemple]
+#    enabled: false
+#    timeout: 30.0
+#    max_concurrency: 4
+#    cache_ttl: 300
