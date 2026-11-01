@@ -123,7 +123,7 @@ def test_guide_can_be_switched_off(make_registry: Callable[..., Registry]) -> No
 # --- drift guards on the deployment content --------------------------------
 
 #: Gateway-authored tools, not upstream ones: excluded from server-prefix checks.
-GATEWAY_OWN_TOOLS = {"search_tools", "call_tool", "execute", "list_resources", "read_resource"}
+GATEWAY_OWN_TOOLS = {"search_tools", "call_tool", "execute", "list_resources", "read_resource", "send_feedback"}
 
 
 def _referenced_names(text: str) -> set[str]:
@@ -161,19 +161,28 @@ def test_deployment_guide_only_names_servers_that_are_enabled() -> None:
     )
 
 
-def test_the_guard_fires_when_a_documented_server_is_removed() -> None:
-    """Simulates the day `geodata` leaves the registry: the check above must fail."""
+def test_the_guard_fires_when_documented_servers_are_removed() -> None:
+    """Simulates the day the three INSEE bricks and geodata leave the registry."""
     registry = Registry.model_validate(
         {
             "gateway": {"name": "Test Gateway"},
-            "servers": [{"name": "mcpdiffusion", "url": "https://example.test/mcp", "domain": "diffusion"}],
+            "servers": [{"name": "mcpdiffusion", "url": "https://example.test/mcp", "domain": "Insee"}],
         }
     )
 
     unknown = _unknown_servers(_referenced_names(DEPLOYMENT_GUIDE.read_text(encoding="utf-8")), registry)
+    expected_servers = {"insee", "melodi", "rmes", "geodata"}
+    removed_servers = {
+        server_name
+        for server_name in expected_servers
+        if any(name.startswith(f"{server_name}_") for name in unknown)
+    }
 
-    assert unknown, "removing a documented server must be caught"
-    assert all(name.startswith("geodata_") for name in unknown)
+    assert all(
+        any(name.startswith(f"{server_name}_") for server_name in expected_servers)
+        for name in unknown
+    )
+    assert removed_servers == expected_servers
 
 
 def test_deployment_guide_defers_the_inventory_to_the_catalogue() -> None:
@@ -181,8 +190,13 @@ def test_deployment_guide_defers_the_inventory_to_the_catalogue() -> None:
     text = DEPLOYMENT_GUIDE.read_text(encoding="utf-8")
 
     assert "catalog://servers" in text
+    assert "catalog://servers/insee/tools" in text
+    assert "catalog://servers/melodi/tools" in text
+    assert "catalog://servers/rmes/tools" in text
     assert "catalog://servers/mcpdiffusion/tools" in text
     assert "catalog://servers/geodata/tools" in text
+    assert 'send_feedback(server="insee"' in text
+    assert "journal de la passerelle" in text
 
 
 def test_registry_rejects_a_missing_guide_path(tmp_path: Path) -> None:

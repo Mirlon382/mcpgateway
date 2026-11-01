@@ -20,7 +20,7 @@ gateway:
 servers:
   - name: alpha
     url: https://alpha.example.org/mcp
-    domain: Statistiques
+    domain: " Insee "
 """
 
 
@@ -35,7 +35,7 @@ def test_minimal_registry_applies_defaults(tmp_path: Path) -> None:
     entry = loaded.registry.servers[0]
 
     assert entry.name == "alpha"
-    assert entry.domain == "statistiques"  # normalised to lowercase
+    assert entry.domain == "Insee"  # trimmed, while preserving the configured label
     assert entry.transport == "http"
     assert entry.enabled is True
     assert entry.tags == frozenset()

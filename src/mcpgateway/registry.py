@@ -104,7 +104,7 @@ class ServerEntry(BaseModel):
     @field_validator("domain")
     @classmethod
     def _check_domain(cls, value: str) -> str:
-        domain = value.strip().lower()
+        domain = value.strip()
         if not domain:
             raise ValueError("domain must not be empty")
         return domain

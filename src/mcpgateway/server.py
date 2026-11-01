@@ -24,6 +24,7 @@ from fastmcp.server.lifespan import lifespan
 from fastmcp.server.transforms.search import BM25SearchTransform
 
 from .catalog import register_catalog_resources
+from .feedback import register_feedback_tool
 from .health import register_health_route
 from .logging_utils import configure_logging, get_logger, log_event
 from .metrics import MetricsRecorder
@@ -88,6 +89,12 @@ def build_instructions(registry: Registry) -> str:
         lines.append("")
         lines.append("Aucun serveur amont n'est activé dans le registre.")
 
+    if registry.servers:
+        lines.append(
+            "Pour signaler un problème lié à un serveur, appelez `send_feedback` avec son nom, "
+            "l'auteur et le rapport ; celui-ci est enregistré dans le journal de la passerelle."
+        )
+
     return "\n".join(lines).strip()
 
 
@@ -142,6 +149,7 @@ def build_gateway(registry: Registry) -> tuple[FastMCP, UpstreamPool, MetricsRec
     if registry.gateway.tool_search.enabled:
         gateway.add_transform(BM25SearchTransform(max_results=registry.gateway.tool_search.max_results))
 
+    register_feedback_tool(gateway, registry=registry)
     health_path = register_health_route(gateway, registry=registry, pool=pool, metrics=metrics)
     catalog_uris = register_catalog_resources(gateway, registry=registry, pool=pool, metrics=metrics)
 

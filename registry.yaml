@@ -63,13 +63,46 @@ servers:
   - name: mcpdiffusion
     url: https://mcpdiffusion.lab.sspcloud.fr/mcp
     transport: http
-    domain: diffusion
-    description: Serveur pour exposer Melodi, Rmes et insee.fr
-    tags: [dataset, publications]
+    domain: Insee
+    description: Agrégation des outils INSEE insee.fr, MELODI et RMES
+    tags: [insee, publications, datasets, observations, metadata]
     enabled: true
     timeout: 30.0
     max_concurrency: 4
     cache_ttl: 300
+
+  - name: insee
+    url: http://localhost:8001/mcp
+    transport: http
+    domain: Insee
+    description: Publications, Informations rapides, chiffres clés et indicateurs de la page d'accueil insee.fr
+    tags: [insee, publications, rapid-releases, key-figures, homepage-indicators]
+    enabled: true
+    timeout: 45.0
+    max_concurrency: 4
+    cache_ttl: 300
+
+  - name: melodi
+    url: http://localhost:8002/mcp
+    transport: http
+    domain: Insee
+    description: Catalogue MELODI des jeux de données statistiques, modalités et observations
+    tags: [insee, melodi, datasets, modalities, observations]
+    enabled: true
+    timeout: 30.0
+    max_concurrency: 4
+    cache_ttl: 300
+
+  - name: rmes
+    url: http://localhost:8003/mcp
+    transport: http
+    domain: Insee
+    description: Métadonnées statistiques INSEE, définitions, nomenclatures et classifications via SPARQL
+    tags: [insee, rmes, metadata, definitions, nomenclatures, classifications, sparql]
+    enabled: true
+    timeout: 60.0
+    max_concurrency: 2
+    cache_ttl: 600
 
   - name: geodata
     url: https://geollm.beta.ign.fr/geocontext/mcp
